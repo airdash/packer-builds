@@ -1,0 +1,37 @@
+{
+  "variables": {
+    "network_interface": "ens3",
+    "openstack_flavor": "91dc50e8-16b1-4de2-a089-c08b7ff01e7e"
+  },
+  "builders": [
+    {
+      "type": "openstack",
+      "flavor": "{{ user `openstack_flavor` }}",
+      "image_name": "ubuntu-xenial-gitlab",
+      "networks": [ "87886c7e-2471-441d-9841-6e219bcc1c57" ],
+      "source_image_filter": {
+        "filters": {
+          "name": "base-ubuntu-xenial"
+        },
+        "most_recent": true
+      },
+      "ssh_username": "ubuntu"
+    }
+  ],
+  "provisioners": [{
+  "type": "shell",
+  "inline": [
+    "export DEBIAN_FRONTEND=noninteractive",
+    "export DEBIAN_PRIORITY=critical",
+    "while ! ( sudo apt-get update ); do echo 'Sleeping for apt-daily'; sleep 1; done",
+    "while ! ( sudo apt-get dist-upgrade -y --force-yes -o 'Dpkg::Options::=--force-confdef' -o 'Dpkg::Options::=--force-confold' ); do echo 'Sleeping for apt-daily'; sleep 1; done",
+    "echo 'deb https://packages.gitlab.com/gitlab/gitlab-ce/ubuntu/ xenial main' | sudo tee -a /etc/apt/sources.list",
+    "echo 'deb-src https://packages.gitlab.com/gitlab/gitlab-ce/ubuntu/ xenial main' | sudo tee -a /etc/apt/sources.list",
+    "wget -q -O - https://packages.gitlab.com/gpg.key | sudo apt-key add -",
+    "sudo apt-get update",
+    "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg curl",
+    "sudo apt-get install -y gitlab-ce"
+  ]
+}]
+}
+

@@ -1,0 +1,37 @@
+{
+  "variables": {
+    "source_image_name": "base-ubuntu-xenial-import",
+    "image_name": "base-ubuntu-xenial",
+    "openstack_flavor": "91dc50e8-16b1-4de2-a089-c08b7ff01e7e",
+    "network": "87886c7e-2471-441d-9841-6e219bcc1c57",
+    "ssh_keypair_name": "packer",
+    "ssh_private_key_file": "~/.ssh/packer"
+  },
+  "builders": [
+    {
+      "type": "openstack",
+      "flavor": "{{ user `openstack_flavor` }}",
+      "image_name": "{{ user `image_name` }}",
+      "networks": [ "{{ user `network` }}" ],
+      "source_image_filter": {
+        "filters": {
+          "name": "{{ user `source_image_name` }}"
+        },
+        "most_recent": true
+      },
+      "ssh_username": "ubuntu",
+      "ssh_keypair_name": "{{ user `ssh_keypair_name` }}",
+      "ssh_private_key_file": "{{ user `ssh_private_key_file` }}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "files/waitforapt.sh"
+    },
+    {
+      "type": "shell",
+      "scripts": [ "./scripts/build.sh" ]
+    }
+  ]
+}

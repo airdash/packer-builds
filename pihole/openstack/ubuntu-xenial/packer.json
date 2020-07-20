@@ -1,0 +1,52 @@
+{
+  "variables": {
+    "source_image_name": "base-ubuntu-xenial",
+    "image_name": "ubuntu-xenial-pihole",
+    "openstack_flavor": "91dc50e8-16b1-4de2-a089-c08b7ff01e7e",
+    "network": "87886c7e-2471-441d-9841-6e219bcc1c57",
+    "ssh_keypair_name": "packer",
+    "ssh_private_key_file": "~/.ssh/packer"
+  },
+  "builders": [
+    {
+      "type": "openstack",
+      "flavor": "{{ user `openstack_flavor` }}",
+      "image_name": "{{ user `image_name` }}",
+      "networks": [ "{{ user `network` }}" ],
+      "source_image_filter": {
+        "filters": {
+          "name": "{{ user `source_image_name` }}"
+        },
+        "most_recent": true
+      },
+      "ssh_username": "ubuntu",
+      "ssh_keypair_name": "{{ user `ssh_keypair_name` }}",
+      "ssh_private_key_file": "{{ user `ssh_private_key_file` }}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "setupVars.conf",
+      "destination": "/tmp/setupVars.conf"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo mkdir /etc/pihole && sudo chmod 755 /etc/pihole",
+        "sudo mv /tmp/setupVars.conf /etc/pihole",
+        "export DEBIAN_FRONTEND=noninteractive",
+        "export DEBIAN_PRIORITY=critical",
+        "while ! ( sudo apt-get update ); do echo 'Sleeping for apt-daily'; sleep 1; done",
+        "while ! ( sudo apt-get dist-upgrade -y --force-yes -o 'Dpkg::Options::=--force-confdef' -o 'Dpkg::Options::=--force-confold' ); do echo 'Sleeping for apt-daily'; sleep 1; done",
+        "sudo apt-get install dhcpcd5 dialog -y --force-yes -o 'Dpkg::Options::=--force-confdef' -o 'Dpkg::Options::=--force-confold'",
+        "git clone --depth 1 https://github.com/pi-hole/pi-hole.git Pi-hole",
+        "cd 'Pi-hole/automated install/'",
+        "sudo bash basic-install.sh --unattended",
+        "sudo chown pihole: -R /etc/pihole",
+        "sudo chown pihole:www-data /etc/pihole/setupVars.conf",
+        "sudo chmod 660 /etc/pihole/setupVars.conf",
+        "sudo rm /etc/pihole/setupVars.conf.update.bak"
+      ]
+    }]
+}

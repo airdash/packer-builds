@@ -1,0 +1,40 @@
+{
+  "variables": {
+    "network_interface": "ens3",
+    "openstack_network_id": "87886c7e-2471-441d-9841-6e219bcc1c57",
+    "openstack_flavor": "91dc50e8-16b1-4de2-a089-c08b7ff01e7e"
+  },
+  "builders": [
+    {
+      "type": "openstack",
+      "flavor": "{{ user `openstack_flavor` }}",
+      "image_name": "ubuntu-xenial-jenkins",
+      "networks": [ "{{ user `openstack_network_id` }}" ],
+      "source_image_filter": {
+        "filters": {
+          "name": "base-ubuntu-xenial"
+        },
+        "most_recent": true
+      },
+      "ssh_username": "ubuntu"
+    }
+  ],
+  "provisioners": [{
+  "type": "shell",
+  "inline": [
+    "export DEBIAN_FRONTEND=noninteractive",
+    "export DEBIAN_PRIORITY=critical",
+    "while ! ( sudo apt-get update ); do echo 'Sleeping for apt-daily'; sleep 1; done",
+    "while ! ( sudo apt-get dist-upgrade -y --force-yes -o 'Dpkg::Options::=--force-confdef' -o 'Dpkg::Options::=--force-confold' ); do echo 'Sleeping for apt-daily'; sleep 1; done",
+    "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
+    "wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -",
+    "echo 'deb https://pkg.jenkins.io/debian binary/' | sudo tee -a /etc/apt/sources.list",
+    "sudo iptables -A PREROUTING -t nat -i {{ user `network_interface` }} -p tcp --dport 80 -j REDIRECT --to-port 8080",
+    "sudo iptables -A PREROUTING -t nat -i {{ user `network_interface` }} -p tcp --dport 443 -j REDIRECT --to-port 8443",
+    "sudo apt-get update",
+    "sudo apt-get install -y openjdk-8-jre",
+    "sudo apt-get install -y jenkins" 
+  ]
+}]
+}
+
